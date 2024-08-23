@@ -4,7 +4,7 @@
     <button @click="uploadImages">Upload Images</button>
 
     <div v-if="images.length">
-      <h3>Image Gallery</h3>
+      <h3>Image_Gallery</h3>
       <div class="gallery">
         <!-- Display each image with a click handler to open in lightbox -->
         <div
