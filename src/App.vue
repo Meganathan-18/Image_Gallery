@@ -15,17 +15,18 @@
     <!-- Display message when no files are chosen -->
     <p v-if="selectedFiles.length === 0 && images.length === 0">No file chosen</p>
 
-    <!-- Image gallery -->
+    <!-- Image gallery with each image in a separate box -->
     <div v-if="images.length">
       <div class="gallery">
-        <!-- Display each image with a click handler to open in lightbox -->
+        <!-- Display each image with controls in a separate container -->
         <div
           v-for="(image, index) in images"
           :key="index"
           class="image-container"
         >
           <img :src="image.url" alt="Uploaded image" @click="openPreview(index)" />
-          <!-- Delete button for each image -->
+          <!-- Metadata and Delete buttons for each image -->
+          <button @click="showMetadata(index)">Show Metadata</button>
           <button @click="deleteImage(index)">Delete</button>
         </div>
       </div>
@@ -38,6 +39,18 @@
       :index="currentIndex"
       @hide="visible = false"
     />
+
+    <!-- Metadata Modal -->
+    <div v-if="metadataVisible" class="metadata-modal">
+      <div class="metadata-content">
+        <button class="close-button" @click="closeMetadata">×</button>
+        <h2>Image Metadata</h2>
+        <p><strong>Name:</strong> {{ currentMetadata.name }}</p>
+        <p><strong>Size:</strong> {{ currentMetadata.size }} bytes</p>
+        <p><strong>Type:</strong> {{ currentMetadata.type }}</p>
+        <p><strong>Dimensions:</strong> {{ currentMetadata.width }} x {{ currentMetadata.height }}</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -54,6 +67,8 @@ export default {
       images: [],
       visible: false,
       currentIndex: 0,
+      metadataVisible: false,
+      currentMetadata: {},
     };
   },
   computed: {
@@ -69,10 +84,24 @@ export default {
       this.uploadImages(newFiles); // Automatically upload images when selected
     },
     previewImages(files) {
-      const newImages = files.map((file) => ({
-        url: URL.createObjectURL(file),
-      }));
-      this.images = [...this.images, ...newImages];
+      files.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            this.images.push({
+              url: e.target.result,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              width: img.width,
+              height: img.height,
+            });
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
     },
     async uploadImages(files) {
       const formData = new FormData();
@@ -105,6 +134,20 @@ export default {
       this.currentIndex = index;
       this.visible = true;
     },
+    showMetadata(index) {
+      const image = this.images[index];
+      this.currentMetadata = {
+        name: image.name,
+        size: image.size,
+        type: image.type,
+        width: image.width,
+        height: image.height,
+      };
+      this.metadataVisible = true;
+    },
+    closeMetadata() {
+      this.metadataVisible = false;
+    },
   },
 };
 </script>
@@ -128,16 +171,10 @@ export default {
 }
 
 .gallery {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 20px;
   padding: 20px;
-  background-color: #f0f0f0;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  margin-top: 20px;
-  position: relative;
-  overflow: hidden;
 }
 
 .image-container {
@@ -146,14 +183,18 @@ export default {
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   padding: 10px;
-  z-index: 1;
+  width: 200px; /* Adjust the width as needed */
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .image-container img {
   max-width: 100%;
   max-height: 150px;
   border-radius: 4px;
+  margin-bottom: 10px;
   transition: transform 0.2s;
 }
 
@@ -162,21 +203,50 @@ export default {
 }
 
 .image-container button {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: red;
+  background-color: #007bff;
   color: white;
   border: none;
-  padding: 5px 10px;
+  padding: 3px 7px;
   cursor: pointer;
   opacity: 0.8;
-  border-radius: 4px;
-  z-index: 2;
+  border-radius: 3px;
+  margin-top: 4px;
+  width: 70%; /* Buttons take full width within the container */
 }
 
 .image-container button:hover {
   opacity: 1;
+}
+
+.metadata-modal {
+  position: fixed;
+  top: 0;
+  left: 0;  
+  width: 100%;
+  height: 100%;
+  background: rgba(254, 254, 254, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.metadata-content {
+  background: rgb(31, 170, 205);
+  padding: 20px;
+  border-radius: 10px;
+  position: relative;
+  width: 300px;
+  max-width: 90%;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
 }
 </style>
